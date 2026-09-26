@@ -1,0 +1,36 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Vodka",
+  "version": "0.1.0",
+  "identifier": "app.vodka.player",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "devUrl": "http://localhost:1420",
+    "beforeBuildCommand": "npm run build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "Vodka",
+        "width": 1320,
+        "height": 820,
+        "minWidth": 380,
+        "minHeight": 520,
+        "decorations": false,
+        "dragDropEnabled": false,
+        "backgroundColor": "#0c0d0f"
+      }
+    ],
+    "security": {
+      "csp": null,
+      "assetProtocol": { "enable": true, "scope": ["**"] }
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "externalBin": ["binaries/yt-dlp", "binaries/ffmpeg", "binaries/ffprobe", "binaries/whisper-cli"],
+    "icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.icns", "icons/icon.ico"]
+  }
+}
