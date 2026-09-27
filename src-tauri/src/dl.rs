@@ -266,13 +266,42 @@ fn expand(app: &AppHandle, id: &str, run: u64, entries: Vec<(String, Option<Stri
     emit(app);
 }
 
+/// Writable folder for tools that must stay current (yt-dlp); preferred over the bundled copies.
+static TOOLS: std::sync::OnceLock<PathBuf> = std::sync::OnceLock::new();
+
 fn bin(name: &str) -> PathBuf {
     let exe = format!("{name}{}", std::env::consts::EXE_SUFFIX);
+    if let Some(own) = TOOLS.get().map(|d| d.join(&exe)).filter(|p| p.exists()) {
+        return own;
+    }
     std::env::current_exe()
         .ok()
         .and_then(|p| p.parent().map(|d| d.join(&exe)))
         .filter(|p| p.exists())
         .unwrap_or_else(|| exe.into())
+}
+
+/// YouTube changes often and a bundled yt-dlp goes stale within weeks, while the install folder is
+/// usually read-only. So we keep a private copy in the app data folder and let yt-dlp update itself.
+pub async fn keep_ytdlp_current(dir: PathBuf) {
+    let exe = format!("yt-dlp{}", std::env::consts::EXE_SUFFIX);
+    let own = dir.join(&exe);
+    if !own.exists() {
+        let bundled = bin("yt-dlp");
+        let tmp = dir.join(format!("{exe}.part"));
+        let copied = bundled.is_absolute()
+            && std::fs::create_dir_all(&dir).is_ok()
+            && std::fs::copy(&bundled, &tmp).is_ok() // keeps the executable bit
+            && std::fs::rename(&tmp, &own).is_ok();
+        if !copied {
+            return;
+        }
+        // A copy made outside the approved app bundle must not carry the "downloaded file" quarantine flag.
+        #[cfg(target_os = "macos")]
+        let _ = Command::new("xattr").args(["-d", "com.apple.quarantine"]).arg(&own).status().await;
+    }
+    let _ = TOOLS.set(dir);
+    let _ = cmd("yt-dlp").arg("-U").stdout(Stdio::null()).stderr(Stdio::null()).status().await;
 }
 
 pub(crate) fn cmd(name: &str) -> Command {

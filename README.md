@@ -4,6 +4,18 @@ A desktop music player you fill yourself. Paste a YouTube, SoundCloud or Spotify
 
 ![Vodka](docs/screenshot.png)
 
+## Download
+
+**[Get the latest release](https://github.com/zOrpheas/vodka/releases/latest)** for Windows, macOS (Apple Silicon and Intel) or Linux (AppImage, .deb, .rpm). Everything it needs is included, and the downloader inside keeps itself up to date.
+
+The app isn't signed with a paid developer certificate yet, so the first launch shows a warning:
+
+- **Windows:** "Windows protected your PC" → **More info** → **Run anyway**.
+- **macOS:** open it once, then **System Settings → Privacy & Security** → **Open Anyway**.
+- **Linux AppImage:** `chmod +x Vodka_*.AppImage` first.
+
+Want to build it yourself or hack on it? See [Building from source](#building-from-source).
+
 ## Features
 
 - **Paste anything, anywhere.** Paste links into the search bar, anywhere in the window, or drag and drop them in. Several links at once work, and so do playlist and album links (each track becomes its own download).
@@ -17,13 +29,12 @@ A desktop music player you fill yourself. Paste a YouTube, SoundCloud or Spotify
 - **Keyboard first.** Every main action has a shortcut (press `?` in the app).
 - **Stays out of the way.** Closes to the tray and keeps playing. Works in a narrow window, and answers media keys where your desktop supports it.
 
-## Getting started
+## Building from source
 
 ### 1. Install the prerequisites
 
 - [Node.js](https://nodejs.org) 20 or newer
 - [Rust](https://rustup.rs) (stable)
-- ffmpeg (`ffmpeg` and `ffprobe` on your `PATH`)
 - git, CMake and a C++ compiler (to build whisper.cpp for lyrics sync)
 - The [Tauri system dependencies](https://v2.tauri.app/start/prerequisites/) for your OS
 
@@ -31,11 +42,11 @@ On Linux you also need GStreamer codecs for playback, and the app indicator libr
 
 ```sh
 # Arch
-sudo pacman -S webkit2gtk-4.1 libayatana-appindicator gst-plugins-good gst-libav ffmpeg cmake base-devel
+sudo pacman -S webkit2gtk-4.1 libayatana-appindicator gst-plugins-good gst-libav cmake base-devel
 
 # Debian / Ubuntu
 sudo apt install libwebkit2gtk-4.1-dev libayatana-appindicator3-dev \
-  gstreamer1.0-plugins-good gstreamer1.0-libav ffmpeg cmake build-essential
+  gstreamer1.0-plugins-good gstreamer1.0-libav cmake build-essential
 ```
 
 ### 2. Get the code and its helper tools
@@ -44,7 +55,7 @@ sudo apt install libwebkit2gtk-4.1-dev libayatana-appindicator3-dev \
 git clone https://github.com/zOrpheas/vodka.git
 cd vodka
 npm install
-npm run sidecars   # downloads yt-dlp, copies ffmpeg/ffprobe, builds whisper-cli (a minute or two)
+npm run sidecars   # downloads yt-dlp and static ffmpeg, builds whisper-cli (a minute or two)
 ```
 
 `npm run sidecars` uses a POSIX shell. On Windows, run it from Git Bash or WSL.
@@ -72,6 +83,16 @@ npm run tauri build
 ```
 
 The output lands in `src-tauri/target/release/bundle/`.
+
+### Releases
+
+Releases are built by GitHub Actions (`.github/workflows/build.yml`) on Linux, Windows and macOS. To publish one, bump the version in `package.json`, `src-tauri/Cargo.toml` and `src-tauri/tauri.conf.json`, then push a tag:
+
+```sh
+git tag v0.2.0 && git push origin v0.2.0
+```
+
+Every push to `main` also builds all installers as downloadable workflow artifacts, handy for testing before a release.
 
 ## Using Vodka
 
@@ -130,7 +151,7 @@ Vodka also keeps the lyrics in step with what you actually hear. Some systems pl
 ### Where your data lives
 
 - **Music files:** the *Save to* folder (default `~/Music/Vodka`).
-- **Library, playlists and settings:** `library.json` in the app data folder (the lyrics sync model lives in `models/` next to it):
+- **Library, playlists and settings:** `library.json` in the app data folder (next to it: `models/` holds the lyrics sync model, `bin/` the self-updating yt-dlp):
   - Linux: `~/.local/share/app.vodka.player/`
   - macOS: `~/Library/Application Support/app.vodka.player/`
   - Windows: `%APPDATA%\app.vodka.player\`
@@ -139,7 +160,7 @@ Deleting a track from the library also deletes its file, a few seconds later so 
 
 ## Troubleshooting
 
-**YouTube downloads suddenly fail.** YouTube changes often, and yt-dlp keeps up. Run `npm run sidecars` again to get the newest yt-dlp. YouTube extraction also works best with [Node.js](https://nodejs.org) or [Deno](https://deno.com) installed.
+**YouTube downloads suddenly fail.** YouTube changes often, and yt-dlp keeps up. Vodka updates its own copy of yt-dlp every time it starts, so restarting the app usually fixes it. When building from source, `npm run sidecars` also fetches the newest one. YouTube extraction also works best with [Node.js](https://nodejs.org) or [Deno](https://deno.com) installed.
 
 **"File is missing."** The audio file was moved or deleted outside Vodka. Delete the track from the library and paste its link again.
 
@@ -171,6 +192,10 @@ Run the Rust tests with:
 cd src-tauri && cargo test
 cargo test -- --ignored   # also runs a live lyrics lookup (needs internet)
 ```
+
+## Bundled tools
+
+Releases include [yt-dlp](https://github.com/yt-dlp/yt-dlp) (Unlicense), static [FFmpeg](https://ffmpeg.org) builds from [ffmpeg-static](https://github.com/eugeneware/ffmpeg-static) (GPL, source at ffmpeg.org) and [whisper.cpp](https://github.com/ggml-org/whisper.cpp) (MIT). They run as separate programs next to Vodka.
 
 ## A note on content
 

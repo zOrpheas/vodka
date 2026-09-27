@@ -81,6 +81,9 @@ pub fn run() {
                     }
                 })
                 .build(app)?;
+            if let Ok(dir) = app.path().app_data_dir() {
+                tauri::async_runtime::spawn(dl::keep_ytdlp_current(dir.join("bin")));
+            }
             Ok(())
         })
         .on_window_event(|window, event| {

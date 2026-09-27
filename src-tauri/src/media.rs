@@ -3,6 +3,7 @@
 
 use std::{
     fs::File,
+    hash::{BuildHasher, Hasher},
     io::{self, BufRead, BufReader, Read, Seek, SeekFrom, Write},
     net::{TcpListener, TcpStream},
     thread,
@@ -15,12 +16,9 @@ pub struct Media {
 pub fn start() -> io::Result<Media> {
     let listener = TcpListener::bind("127.0.0.1:0")?;
     let port = listener.local_addr()?.port();
-    let mut seed = [0u8; 16];
-    File::open("/dev/urandom").and_then(|mut f| f.read_exact(&mut seed)).unwrap_or_else(|_| {
-        let t = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos();
-        seed = (t ^ (std::process::id() as u128) << 64).to_le_bytes();
-    });
-    let token: String = seed.iter().map(|b| format!("{b:02x}")).collect();
+    // RandomState keys come from the OS's secure random source on every platform: 128 unguessable bits.
+    let random = || std::collections::hash_map::RandomState::new().build_hasher().finish();
+    let token = format!("{:016x}{:016x}", random(), random());
     let base = format!("http://127.0.0.1:{port}/{token}/");
     thread::spawn(move || {
         for stream in listener.incoming().flatten() {
