@@ -81,9 +81,12 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
+          # The runner's preinstalled LLVM libunwind-14-dev conflicts with libunwind-dev (pulled in by GStreamer dev).
+          sudo apt-get remove -y libunwind-14-dev || true
           sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev libxdo-dev \
             libssl-dev patchelf file libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev \
-            gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-libav
+            gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-libav \
+            2> apt.err || { echo "::error title=apt-get failed::$(grep -E '^E:|Depends|conflict|Unable' apt.err | head -5 | tr '\n' ' ')"; exit 1; }
 
       - run: npm ci
 
